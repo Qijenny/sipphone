@@ -1,0 +1,207 @@
+#:kivy 2.1.0
+#:import dp kivy.metrics.dp
+
+<SIPButton@Button>:
+    background_normal: ''
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: self.bg_color if hasattr(self, 'bg_color') else (0.18, 0.49, 0.20, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(8)]
+    color: 1, 1, 1, 1
+    font_size: '18sp'
+    bold: True
+    size_hint_y: None
+    height: dp(60)
+
+
+<CallButton@SIPButton>:
+    bg_color: 0.18, 0.49, 0.20, 1
+
+
+<AnswerButton@SIPButton>:
+    bg_color: 0.08, 0.40, 0.75, 1
+
+
+<HangupButton@SIPButton>:
+    bg_color: 0.78, 0.16, 0.16, 1
+
+
+<LabelTitle@Label>:
+    color: 1, 1, 1, 1
+    bold: True
+    font_size: '22sp'
+    size_hint_y: None
+    height: dp(40)
+
+
+<LabelSubtitle@Label>:
+    color: 0.67, 0.80, 0.87, 1
+    font_size: '14sp'
+    size_hint_y: None
+    height: dp(25)
+
+
+<LabelInfo@Label>:
+    color: 0.53, 0.80, 1, 1
+    font_size: '13sp'
+    size_hint_y: None
+    height: dp(25)
+    halign: 'left'
+    valign: 'middle'
+    text_size: self.size
+
+
+<StatusLabel@Label>:
+    color: 0, 0.90, 1, 1
+    font_size: '16sp'
+    size_hint_y: None
+    height: dp(45)
+    halign: 'left'
+    valign: 'middle'
+    text_size: self.size
+    padding: [dp(10), dp(5)]
+    canvas.before:
+        Color:
+            rgba: 0.05, 0.13, 0.22, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(5)]
+
+
+<TextInput@TextInput>:
+    background_color: 0.05, 0.13, 0.22, 1
+    foreground_color: 0, 1, 0.53, 1
+    cursor_color: 1, 1, 1, 1
+    hint_text_color: 0.5, 0.5, 0.5, 1
+    font_size: '16sp'
+    multiline: False
+    size_hint_y: None
+    height: dp(40)
+    padding: [dp(10), dp(8), dp(10), dp(8)]
+
+
+<LogBox@BoxLayout>:
+    orientation: 'vertical'
+    padding: dp(5)
+    canvas.before:
+        Color:
+            rgba: 0.10, 0.27, 0.40, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(8)]
+
+
+<RootWidget>:
+    orientation: 'vertical'
+    padding: dp(15)
+    spacing: dp(8)
+    canvas.before:
+        Color:
+            rgba: 0.10, 0.23, 0.36, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    # 标题
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: dp(70)
+        spacing: dp(2)
+        
+        LabelTitle:
+            text: "🏊 国贸公寓游泳馆"
+        LabelSubtitle:
+            text: "值班室呼叫系统"
+
+    # 目标 IP 输入框
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(40)
+        spacing: dp(5)
+        
+        Label:
+            text: "目标 IP:"
+            color: 1, 1, 1, 1
+            font_size: '14sp'
+            size_hint_x: None
+            width: dp(80)
+            halign: 'right'
+            valign: 'middle'
+            text_size: self.size
+        
+        TextInput:
+            id: input_ip
+            text: "10.254.10.169"
+        
+        Label:
+            text: "端口:"
+            color: 1, 1, 1, 1
+            font_size: '14sp'
+            size_hint_x: None
+            width: dp(50)
+            halign: 'right'
+            valign: 'middle'
+            text_size: self.size
+        
+        TextInput:
+            id: input_port
+            text: "5060"
+            size_hint_x: None
+            width: dp(80)
+
+    # 呼叫按钮
+    CallButton:
+        id: btn_call
+        text: "📞 呼叫值班室"
+        on_release: root.on_call()
+
+    # 接听按钮
+    AnswerButton:
+        id: btn_answer
+        text: "📲 接听来电"
+        disabled: True
+        on_release: root.on_answer()
+
+    # 挂断按钮
+    HangupButton:
+        id: btn_hangup
+        text: "📴 挂断通话"
+        disabled: True
+        on_release: root.on_hangup()
+
+    # 状态栏
+    StatusLabel:
+        id: lbl_status
+        text: "状态: 空闲"
+
+    # IP 显示
+    LabelInfo:
+        id: lbl_ip
+        text: "本机 IP: 获取中..."
+
+    # 日志
+    LogBox:
+        id: log_box
+        ScrollView:
+            id: log_scroll
+            do_scroll_x: False
+            do_scroll_y: True
+            Label:
+                id: lbl_log
+                text: ""
+                color: 0, 1, 0.53, 1
+                font_size: '12sp'
+                size_hint_y: None
+                height: self.texture_size[1] + dp(20)
+                padding: [dp(5), dp(5)]
+                halign: 'left'
+                valign: 'top'
+                text_size: self.width, None
