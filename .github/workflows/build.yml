@@ -43,9 +43,30 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython pillow
 
+    - name: Accept Android SDK licenses
+      run: |
+        # 创建目录并下载 SDK command line tools
+        mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        cd ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        
+        # 下载 command line tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        rm commandlinetools-linux-11076708_latest.zip
+        
+        # 设置环境变量
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+        
+        # 接受所有许可证
+        yes | sdkmanager --licenses
+        
+        # 安装必要的组件
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+
     - name: Build APK
       run: |
-        # 让 buildozer 自动下载 Android SDK
         export BUILDOZER_WARN_ON_ROOT=0
         buildozer android debug 2>&1 | tee build.log
 
