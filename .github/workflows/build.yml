@@ -47,7 +47,7 @@ jobs:
     - name: Install buildozer
       run: |
         pip install --upgrade pip
-        pip install buildozer cython pillow
+        pip install buildozer "cython<3.0" pillow
 
     - name: Setup Android SDK
       run: |
