@@ -51,38 +51,25 @@ jobs:
 
     - name: Setup Android SDK
       run: |
-        # 创建 buildozer 期望的目录
         export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
         export ANDROID_SDK_ROOT="$ANDROID_HOME"
         mkdir -p $ANDROID_HOME/cmdline-tools
         cd $ANDROID_HOME/cmdline-tools
         
-        # 下载 command line tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
         unzip -q commandlinetools-linux-11076708_latest.zip
         mv cmdline-tools latest
         rm commandlinetools-linux-11076708_latest.zip
         
-        # 关键：创建符号链接让 buildozer 找到 sdkmanager
         mkdir -p $ANDROID_HOME/tools/bin
         ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
         
-        # 设置 PATH
         export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
         
-        # 验证
         java -version
-        echo "sdkmanager location:"
-        which sdkmanager
         
-        # 接受所有许可证
         yes | sdkmanager --licenses
-        
-        # 安装必要的组件
         sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
-        
-        # 列出已安装的包
-        sdkmanager --list_installed 2>&1 | head -30
 
     - name: Build APK
       run: |
@@ -90,12 +77,26 @@ jobs:
         export ANDROID_SDK_ROOT="$ANDROID_HOME"
         export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
         export BUILDOZER_WARN_ON_ROOT=0
+        set +e
         buildozer android debug 2>&1 | tee build.log
+        EXIT_CODE=$?
+        echo "buildozer exit code: $EXIT_CODE"
+        echo "=== Last 100 lines of build.log ==="
+        tail -100 build.log
+        exit $EXIT_CODE
+      timeout-minutes: 90
+
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
+      if: always()
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: sipphone-debug
         path: bin/*.apk
-        if-no-files-found: error
+        if-no-files-found: warn
       if: always()
