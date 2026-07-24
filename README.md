@@ -1,110 +1,59 @@
-# SIP Phone - Kivy Android 版本
-
-国贸游泳馆值班呼叫系统 - Android 客户端
-
-## 项目结构
-
-```
-sip_direct_kivy/
-├── main.py              # Kivy 应用入口
-├── sipphone.kv          # Kivy 界面定义
-├── sip_logic.py         # SIP 协议核心逻辑
-├── audio_android.py     # Android 音频处理（pyjnius）
-├── g711a.py             # G.711 编解码
-├── rtp.py               # RTP 会话
-├── buildozer.spec       # Buildozer 打包配置
-├── .github/
-│   └── workflows/
-│       └── build.yml    # GitHub Actions 自动构建
-└── README.md
-```
-
-## 快速开始
-
-### 方式一：GitHub Actions 自动构建（推荐）
-
-1. **创建 GitHub 仓库**
-   ```bash
-   cd sip_direct_kivy
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/你的用户名/sipphone.git
-   git push -u origin main
-   ```
-
-2. **配置 Android 签名密钥**（发布版本需要）
-   - 在 GitHub 仓库 Settings → Secrets 添加：
-     - `BUILDZOOZER_USERNAME`: Android keystore 别名
-     - `BUILDZOOZER_KEY`: Base64 编码的 keystore 文件
-
-3. **触发构建**
-   - 推送代码后自动构建
-   - 或手动触发：Actions → Build Android APK → Run workflow
-
-4. **下载 APK**
-   - 构建完成后在 Artifacts 中下载
-
-### 方式二：本地构建（需要 Linux/macOS）
-
-```bash
-# 安装依赖
-pip install buildozer cython pillow
-sudo apt install ffmpeg libgstreamer1.0-dev gstreamer1.0-plugins-good
-
-# 打包
-buildozer android debug
-
-# 输出: bin/sipphone-*-debug.apk
-```
-
-### 方式三：桌面测试
-
-```bash
-pip install kivy==2.1.0 pyaudio
-python main.py
-```
-
-## 功能特性
-
-| 功能 | 状态 |
-|------|------|
-| 发起呼叫 | ✅ |
-| 接听来电 | ✅ |
-| 挂断通话 | ✅ |
-| 来电振铃 | ✅ |
-| 双向音频 | ✅ |
-| SIP 信令 | ✅ |
-| RTP 传输 | ✅ |
-| G.711 PCMU 编解码 | ✅ |
-| Android 权限管理 | ✅ |
-
-## Android 权限
-
-| 权限 | 用途 |
-|------|------|
-| `INTERNET` | SIP 网络通信 |
-| `RECORD_AUDIO` | 麦克风采集 |
-| `MODIFY_AUDIO_SETTINGS` | 音频模式切换 |
-| `WAKE_LOCK` | 通话保持唤醒 |
-| `ACCESS_NETWORK_STATE` | 网络状态检测 |
-| `ACCESS_WIFI_STATE` | Wi-Fi 状态检测 |
-
-## 配置说明
-
-### 目标 IP 地址
-
-在应用中输入目标 IP 地址，默认为 `10.254.10.169`
-
-### SIP 端口
-
-默认为 `5060`
-
-## 技术栈
-
-- **UI**: Kivy 2.1.0
-- **音频**: pyjnius (Android) / pyaudio (桌面)
-- **打包**: Buildozer
-- **SIP 协议**: RFC 3261
-- **音频编码**: G.711 PCMU (RFC 4855)
-- **RTP**: RFC 3550
+IyBTSVAgUGhvbmUgLSBLaXZ5IEFuZHJvaWQg54mI5pysCgrlm73otLjmuLjm
+s7PppoblgLznj63lkbzlj6vns7vnu58gLSBBbmRyb2lkIOWuouaIt+errwoK
+IyMg6aG555uu57uT5p6ECgpgYGAKc2lwX2RpcmVjdF9raXZ5LwrilJzilIDi
+lIAgbWFpbi5weSAgICAgICAgICAgICAgIyBLaXZ5IOW6lOeUqOWFpeWPowri
+lJzilIDilIAgc2lwcGhvbmUua3YgICAgICAgICAgIyBLaXZ5IOeVjOmdouWu
+muS5iQrilJzilIDilIAgc2lwX2xvZ2ljLnB5ICAgICAgICAgIyBTSVAg5Y2P
+6K6u5qC45b+D6YC76L6RCuKUnOKUgOKUgCBhdWRpb19hbmRyb2lkLnB5ICAg
+ICAjIEFuZHJvaWQg6Z+z6aKR5aSE55CG77yIcHlqbml1c++8iQrilJzilIDi
+lIAgZzcxMWEucHkgICAgICAgICAgICAgIyBHLjcxMSDnvJbop6PnoIEK4pSc
+4pSA4pSAIHJ0cC5weSAgICAgICAgICAgICAgICMgUlRQIOS8muivnQrilJzi
+lIDilIAgYnVpbGRvemVyLnNwZWMgICAgICAgIyBCdWlsZG96ZXIg5omT5YyF
+6YWN572uCuKUnOKUgOKUgCAuZ2l0aHViLwrilIIgICDilJTilIDilIAgd29y
+a2Zsb3dzLwrilIIgICAgICAg4pSU4pSA4pSAIGJ1aWxkLnltbCAgICAjIEdp
+dEh1YiBBY3Rpb25zIOiHquWKqOaehOW7ugrilJTilIDilIAgUkVBRE1FLm1k
+CmBgYAoKIyMg5b+r6YCf5byA5aeLCgojIyMg5pa55byP5LiA77yaR2l0SHVi
+IEFjdGlvbnMg6Ieq5Yqo5p6E5bu677yI5o6o6I2Q77yJCgoxLiAqKuWIm+W7
+uiBHaXRIdWIg5LuT5bqTKioKICAgYGBgYmFzaAogICBjZCBzaXBfZGlyZWN0
+X2tpdnkKICAgZ2l0IGluaXQKICAgZ2l0IGFkZCAuCiAgIGdpdCBjb21taXQg
+LW0gIkluaXRpYWwgY29tbWl0IgogICBnaXQgcmVtb3RlIGFkZCBvcmlnaW4g
+aHR0cHM6Ly9naXRodWIuY29tL+S9oOeahOeUqOaIt+WQjS9zaXBwaG9uZS5n
+aXQKICAgZ2l0IHB1c2ggLXUgb3JpZ2luIG1haW4KICAgYGBgCgoyLiAqKumF
+jee9riBBbmRyb2lkIOetvuWQjeWvhumSpSoq77yI5Y+R5biD54mI5pys6ZyA
+6KaB77yJCiAgIC0g5ZyoIEdpdEh1YiDku5PlupMgU2V0dGluZ3Mg4oaSIFNl
+Y3JldHMg5re75Yqg77yaCiAgICAgLSBgQlVJTERaT09aRVJfVVNFUk5BTUVg
+OiBBbmRyb2lkIGtleXN0b3JlIOWIq+WQjQogICAgIC0gYEJVSUxEWk9PWkVS
+X0tFWWA6IEJhc2U2NCDnvJbnoIHnmoQga2V5c3RvcmUg5paH5Lu2CgozLiAq
+KuinpuWPkeaehOW7uioqCiAgIC0g5o6o6YCB5Luj56CB5ZCO6Ieq5Yqo5p6E
+5bu6CiAgIC0g5oiW5omL5Yqo6Kem5Y+R77yaQWN0aW9ucyDihpIgQnVpbGQg
+QW5kcm9pZCBBUEsg4oaSIFJ1biB3b3JrZmxvdwoKNC4gKirkuIvovb0gQVBL
+KioKICAgLSDmnoTlu7rlrozmiJDlkI7lnKggQXJ0aWZhY3RzIOS4reS4i+i9
+vQoKIyMjIOaWueW8j+S6jO+8muacrOWcsOaehOW7uu+8iOmcgOimgSBMaW51
+eC9tYWNPU++8iQoKYGBgYmFzaAojIOWuieijheS+nei1lgpwaXAgaW5zdGFs
+bCBidWlsZG96ZXIgY3l0aG9uIHBpbGxvdwpzdWRvIGFwdCBpbnN0YWxsIGZm
+bXBlZyBsaWJnc3RyZWFtZXIxLjAtZGV2IGdzdHJlYW1lcjEuMC1wbHVnaW5z
+LWdvb2QKCiMg5omT5YyFCmJ1aWxkb3plciBhbmRyb2lkIGRlYnVnCgojIOi+
+k+WHujogYmluL3NpcHBob25lLSotZGVidWcuYXBrCmBgYAoKIyMjIOaWueW8
+j+S4ie+8muahjOmdoua1i+ivlQoKYGBgYmFzaApwaXAgaW5zdGFsbCBraXZ5
+PT0yLjEuMCBweWF1ZGlvCnB5dGhvbiBtYWluLnB5CmBgYAoKIyMg5Yqf6IO9
+54m55oCnCgp8IOWKn+iDvSB8IOeKtuaAgSB8CnwtLS0tLS18LS0tLS0tfAp8
+IOWPkei1t+WRvOWPqyB8IOKchSB8Cnwg5o6l5ZCs5p2l55S1IHwg4pyFIHwK
+fCDmjILmlq3pgJror50gfCDinIUgfAp8IOadpeeUteaMr+mTgyB8IOKchSB8
+Cnwg5Y+M5ZCR6Z+z6aKRIHwg4pyFIHwKfCBTSVAg5L+h5LukIHwg4pyFIHwK
+fCBSVFAg5Lyg6L6TIHwg4pyFIHwKfCBHLjcxMSBQQ01VIOe8luino+eggSB8
+IOKchSB8CnwgQW5kcm9pZCDmnYPpmZDnrqHnkIYgfCDinIUgfAoKIyMgQW5k
+cm9pZCDmnYPpmZAKCnwg5p2D6ZmQIHwg55So6YCUIHwKfC0tLS0tLXwtLS0t
+LS18CnwgYElOVEVSTkVUYCB8IFNJUCDnvZHnu5zpgJrkv6EgfAp8IGBSRUNP
+UkRfQVVESU9gIHwg6bqm5YWL6aOO6YeH6ZuGIHwKfCBgTU9ESUZZX0FVRElP
+X1NFVFRJTkdTYCB8IOmfs+mikeaooeW8j+WIh+aNoiB8CnwgYFdBS0VfTE9D
+S2AgfCDpgJror53kv53mjIHllKTphpIgfAp8IGBBQ0NFU1NfTkVUV09SS19T
+VEFURWAgfCDnvZHnu5znirbmgIHmo4DmtYsgfAp8IGBBQ0NFU1NfV0lGSV9T
+VEFURWAgfCBXaS1GaSDnirbmgIHmo4DmtYsgfAoKIyMg6YWN572u6K+05piO
+CgojIyMg55uu5qCHIElQIOWcsOWdgAoK5Zyo5bqU55So5Lit6L6T5YWl55uu
+5qCHIElQIOWcsOWdgO+8jOm7mOiupOS4uiBgMTAuMjU0LjEwLjE2OWAKCiMj
+IyBTSVAg56uv5Y+jCgrpu5jorqTkuLogYDUwNjBgCgojIyDmioDmnK/moIgK
+Ci0gKipVSSoqOiBLaXZ5IDIuMS4wCi0gKirpn7PpopEqKjogcHlqbml1cyAo
+QW5kcm9pZCkgLyBweWF1ZGlvICjmoYzpnaIpCi0gKirmiZPljIUqKjogQnVp
+bGRvemVyCi0gKipTSVAg5Y2P6K6uKio6IFJGQyAzMjYxCi0gKirpn7PpopHn
+vJbnoIEqKjogRy43MTEgUENNVSAoUkZDIDQ4NTUpCi0gKipSVFAqKjogUkZD
+IDM1NTAK
