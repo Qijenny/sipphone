@@ -1,0 +1,119 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Cache Buildozer
+      uses: actions/cache@v4
+      with:
+        path: |
+          .buildozer
+          ~/.buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git zip unzip \
+          python3-pip autoconf libtool \
+          pkg-config zlib1g-dev libncurses5-dev \
+          libncursesw5-dev libtinfo5 cmake \
+          libffi-dev libssl-dev
+
+    - name: Install buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer "cython<3.0" pillow
+
+    - name: Pre-download Python 3.11.12 tarball
+      run: |
+        mkdir -p ~/.buildozer/cache
+        if [ ! -f ~/.buildozer/cache/Python-3.11.12.tar.xz ]; then
+          echo "Downloading Python 3.11.12 from python.org..."
+          wget -q -O ~/.buildozer/cache/Python-3.11.12.tar.xz \
+            https://www.python.org/ftp/python/3.11.12/Python-3.11.12.tar.xz
+          echo "Download complete: $(du -sh ~/.buildozer/cache/Python-3.11.12.tar.xz)"
+        else
+          echo "Already cached: Python-3.11.12.tar.xz"
+        fi
+
+    - name: Setup Android SDK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+        rm -rf cmdline-tools latest
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        rm commandlinetools-linux-11076708_latest.zip
+        
+        mkdir -p $ANDROID_HOME/tools/bin
+        ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
+        
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        
+        java -version
+        
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+
+    - name: Build APK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        export BUILDOZER_WARN_ON_ROOT=0
+        export BUILDOZER_CACHE_DIR="$HOME/.buildozer/cache"
+        # Use buildozer-v2.spec with Python 3.11.12
+        buildozer -v android debug --spec buildozer-v2.spec 2>&1 | tee build.log
+        EXIT_CODE=${PIPESTATUS[0]}
+        echo "buildozer exit code: $EXIT_CODE"
+        echo "=== Last 100 lines of build.log ==="
+        tail -100 build.log
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "=== Errors found in build.log ==="
+          grep -E "ERROR|Traceback|No module|404|failed|ErrorReturnCode" build.log | tail -20
+        fi
+        exit $EXIT_CODE
+      timeout-minutes: 90
+
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
+      if: always()
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: sipphone-debug
+        path: bin/*.apk
+        if-no-files-found: error
+      if: always()
