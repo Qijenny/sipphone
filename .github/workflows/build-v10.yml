@@ -1,0 +1,168 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Cache Buildozer
+      uses: actions/cache@v4
+      with:
+        path: |
+          .buildozer
+          ~/.buildozer
+        key: ${{ runner.os }}-buildozer-v9-${{ hashFiles('buildozer-v3.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git zip unzip \
+          python3-pip autoconf libtool \
+          pkg-config zlib1g-dev libncurses5-dev \
+          libncursesw5-dev libtinfo5 cmake \
+          libffi-dev libssl-dev
+
+    - name: Install buildozer
+      run: |
+        pip install --upgrade pip wheel setuptools
+        pip install "cython<3.0" pillow buildozer
+
+    - name: Create cgi shim for Python compatibility
+      run: |
+        SITE_PKG=$(python -c "import site; print(site.getsitepackages()[0])")
+        echo "Site packages: $SITE_PKG"
+        
+        cat > $SITE_PKG/cgi.py << 'PYEOF'
+"""Minimal cgi module replacement for Python 3.13+ compatibility."""
+import html
+
+__all__ = ['escape', 'FieldStorage', 'parse_qs', 'parse_qsl',
+           'parse_header', 'parse_multipart']
+
+def escape(s, quote=None):
+    if isinstance(s, bytes):
+        s = s.decode('latin-1', 'replace')
+    if quote is True:
+        quote = '"'
+    elif quote is False:
+        quote = ''
+    return html.escape(s, quote)
+
+class FieldStorage:
+    def __init__(self, *args, **kwargs):
+        self.fields = {}
+    def __getitem__(self, key):
+        return self.fields[key]
+    def getfirst(self, key, default=None):
+        return self.fields.get(key, [default])[0] if key in self.fields else default
+    def getlist(self, key):
+        return self.fields.get(key, [])
+
+def parse_qs(qs, keep_blank_values=False):
+    import urllib.parse
+    return dict(urllib.parse.parse_qsl(qs, keep_blank_values=keep_blank_values))
+
+def parse_qsl(qs, keep_blank_values=False):
+    import urllib.parse
+    return urllib.parse.parse_qsl(qs, keep_blank_values=keep_blank_values)
+
+def parse_header(string):
+    return string, {}
+
+def parse_multipart(infile, pdict):
+    return [], pdict
+PYEOF
+        
+        echo "Created cgi.py shim"
+        python -c "import cgi; print('cgi.escape:', cgi.escape('<test>'))"
+        
+        # Also install to user site for any Python subprocess
+        mkdir -p ~/.local/lib/python3.11/site-packages
+        cp $SITE_PKG/cgi.py ~/.local/lib/python3.11/site-packages/cgi.py
+
+    - name: Pre-download Python 3.11.12 tarball
+      run: |
+        mkdir -p ~/.buildozer/cache
+        if [ ! -f ~/.buildozer/cache/Python-3.11.12.tar.xz ]; then
+          echo "Downloading Python 3.11.12..."
+          wget -q -O ~/.buildozer/cache/Python-3.11.12.tar.xz \
+            https://www.python.org/ftp/python/3.11.12/Python-3.11.12.tar.xz
+          echo "Done: $(du -sh ~/.buildozer/cache/Python-3.11.12.tar.xz)"
+        else
+          echo "Already cached"
+        fi
+
+    - name: Setup Android SDK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+        rm -rf cmdline-tools latest
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        rm commandlinetools-linux-11076708_latest.zip
+        mkdir -p $ANDROID_HOME/tools/bin
+        ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        java -version
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+
+    - name: Build APK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        export BUILDOZER_WARN_ON_ROOT=0
+        export BUILDOZER_CACHE_DIR="$HOME/.buildozer/cache"
+        
+        buildozer -v android debug --spec buildozer-v3.spec 2>&1 | tee build.log
+        EXIT_CODE=${PIPESTATUS[0]}
+        echo "buildozer exit code: $EXIT_CODE"
+        tail -100 build.log
+        
+        if [ $EXIT_CODE -ne 0 ]; then
+          grep -E "ERROR|Traceback|No module|404|failed|ErrorReturnCode" build.log | tail -30
+        fi
+        ls -la bin/*.apk 2>/dev/null || echo "No APK found"
+        exit $EXIT_CODE
+      timeout-minutes: 90
+
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
+      if: always()
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: sipphone-debug
+        path: bin/*.apk
+        if-no-files-found: error
+      if: always()
