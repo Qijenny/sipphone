@@ -1,0 +1,149 @@
+name: Build Android APK (Python 3.11, fix cgi)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Clear old buildozer cache
+      run: |
+        echo "Clearing buildozer cache..."
+        rm -rf ~/.buildozer
+        rm -rf .buildozer
+
+    - name: Cache Buildozer (v25)
+      uses: actions/cache@v4
+      with:
+        path: |
+          .buildozer
+          ~/.buildozer
+        key: ${{ runner.os }}-buildozer-v25-py311-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-v25-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+    - name: Install buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer "cython<3.0" pillow
+
+    - name: Setup Android SDK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+        rm -rf cmdline-tools latest
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        rm commandlinetools-linux-11076708_latest.zip
+        mkdir -p $ANDROID_HOME/tools/bin
+        ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        java -version
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+
+    - name: Create cgi module for p4a
+      run: |
+        mkdir -p .buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/hostpython3
+        cat > .buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/hostpython3/cgi.py << 'EOF'
+        """Minimal cgi module shim for Python 3.11+ compatibility"""
+        import html
+        import urllib.parse
+
+        def escape(s, quote=True):
+            return html.escape(s, quote=quote)
+
+        def parse_qs(qs, keep_blank_values=False, strict_parsing=False,
+                     encoding='utf-8', errors='replace', max_num_fields=None):
+            return urllib.parse.parse_qs(qs, keep_blank_values, strict_parsing,
+                                         encoding=encoding, errors=errors,
+                                         max_num_fields=max_num_fields)
+
+        class FieldStorage:
+            def __init__(self, *args, **kwargs):
+                pass
+        EOF
+
+    - name: Build APK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        export BUILDOZER_WARN_ON_ROOT=0
+        
+        python3 -c "
+import site, os
+cgi_content = '''import html, urllib.parse
+def escape(s, quote=True): return html.escape(s, quote=quote)
+def parse_qs(qs, keep_blank_values=False, strict_parsing=False, encoding='utf-8', errors='replace', max_num_fields=None): return urllib.parse.parse_qs(qs, keep_blank_values, strict_parsing, encoding=encoding, errors=errors, max_num_fields=max_num_fields)
+class FieldStorage:
+    def __init__(self, *args, **kwargs): pass
+'''
+for sp in site.getsitepackages():
+    cgi_path = os.path.join(sp, 'cgi.py')
+    with open(cgi_path, 'w') as f:
+        f.write(cgi_content)
+    print(f'Created {cgi_path}')
+"
+        
+        buildozer -v android debug --spec buildozer.spec 2>&1 | tee build.log
+        BUILD_EXIT=${PIPESTATUS[0]}
+        
+        echo ""
+        echo "=== Build completed with exit code: $BUILD_EXIT ==="
+        find . -name "*.apk" -type f 2>/dev/null
+        
+        APK_COUNT=$(find . -name "*.apk" -type f 2>/dev/null | wc -l)
+        echo "Found $APK_COUNT APK files"
+        
+        if [ $BUILD_EXIT -ne 0 ]; then
+          echo "Build failed!"
+          exit 1
+        fi
+        
+        if [ $APK_COUNT -eq 0 ]; then
+          echo "Build succeeded but no APK found!"
+          exit 1
+        fi
+      timeout-minutes: 90
+
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
+      if: always()
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: sipphone-debug
+        path: '**/*.apk'
+        if-no-files-found: error
+      if: always()
