@@ -20,7 +20,8 @@ version = 1.0.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy=1.11.1,numpy
-requirements = python3==3.11.12,hostpython3==3.11.12,kivy==2.3.1,pyjnius,android
+# Use Python 3.12.4 to include cgi module (Python 3.13+ removed it)
+requirements = python3==3.12.4,hostpython3==3.12.4,kivy==2.3.1,pyjnius,android
 
 # (str) Presplash of the application
 # presplash.filename = %(source.dir)s/presplash.png
@@ -38,10 +39,13 @@ fullscreen = 0
 android.permissions = INTERNET,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,WAKE_LOCK,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE
 
 # (int) Android API to use
-android.api = 31
+android.api = 33
 
-# (int) Minimum API required (default 21)
-# android.minapi = 21
+# (int) Minimum API required (Android 7.1 = API 25, support down to API 21)
+android.minapi = 21
+
+# (int) Android NDK API to use
+android.ndk_api = 21
 
 # (int) Android SDK version to use
 # android.sdk = 20
