@@ -22,7 +22,7 @@ version = 1.0.0
 # comma separated e.g. requirements = sqlite3,kivy=1.11.1,numpy
 # Use Python 3.11.12 - matches GitHub Actions system Python (3.11.15)
 # p4a requires hostpython3 == system Python version, otherwise version mismatch error
-requirements = python3==3.11.12,hostpython3==3.11.12,kivy==2.3.1,pyjnius,android
+requirements = python3==3.12.4,hostpython3==3.12.4,kivy==2.3.1,pyjnius,android
 
 # (str) Presplash of the application
 # presplash.filename = %(source.dir)s/presplash.png
