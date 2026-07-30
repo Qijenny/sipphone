@@ -23,6 +23,13 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+    
+    - name: Clear buildozer cache (force fresh build)
+      run: |
+        echo "Clearing all buildozer caches to prevent version mismatch..."
+        rm -rf $HOME/.buildozer
+        rm -rf .buildozer
+        echo "Cache cleared"
 
     - name: Cache Buildozer
       uses: actions/cache@v4
