@@ -1,0 +1,134 @@
+name: Build Android APK (Force Python 3.12)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Verify Python version
+      run: |
+        python --version
+        python -c "import sys; print(f'Python {sys.version}')"
+        python -c "import cgi; print('cgi module available')"
+
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Clear buildozer cache
+      run: |
+        echo "Clearing buildozer cache..."
+        rm -rf ~/.buildozer
+        rm -rf .buildozer
+
+    - name: Create buildozer.spec with Python 3.12
+      run: |
+        cat > buildozer-py312.spec << 'SPECEOF'
+[app]
+title = SIP Phone
+package.name = sipphone
+package.domain = org.example
+source.dir = .
+source.include_exts = py,png,jpg,kv,atlas
+version = 0.1
+version.code = 1
+requirements = python3==3.12.4,hostpython3==3.12.4,kivy==2.3.1,pyjnius,android
+orientation = portrait
+fullscreen = 0
+android.presplash_color = #FFFFFF
+android.api = 33
+android.minapi = 21
+android.ndk_api = 21
+
+[buildozer]
+log_level = 2
+warn_on_root = 0
+SPECEOF
+        echo "Created buildozer-py312.spec"
+        cat buildozer-py312.spec
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+    - name: Install buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer "cython<3.0" pillow
+
+    - name: Setup Android SDK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+        rm -rf cmdline-tools latest
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        rm commandlinetools-linux-11076708_latest.zip
+        mkdir -p $ANDROID_HOME/tools/bin
+        ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        java -version
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+
+    - name: Build APK
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+        export BUILDOZER_WARN_ON_ROOT=0
+        
+        buildozer -v android debug --spec buildozer-py312.spec 2>&1 | tee build.log
+        BUILD_EXIT=${PIPESTATUS[0]}
+        
+        echo ""
+        echo "=== Build completed with exit code: $BUILD_EXIT ==="
+        find . -name "*.apk" -type f 2>/dev/null
+        
+        APK_COUNT=$(find . -name "*.apk" -type f 2>/dev/null | wc -l)
+        echo "Found $APK_COUNT APK files"
+        
+        if [ $BUILD_EXIT -ne 0 ]; then
+          echo "Build failed!"
+          exit 1
+        fi
+        
+        if [ $APK_COUNT -eq 0 ]; then
+          echo "Build succeeded but no APK found!"
+          exit 1
+        fi
+      timeout-minutes: 90
+
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
+      if: always()
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: sipphone-debug
+        path: '**/*.apk'
+        if-no-files-found: error
+      if: always()
