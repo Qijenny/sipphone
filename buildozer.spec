@@ -20,8 +20,9 @@ version = 1.0.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy=1.11.1,numpy
-# Use Python 3.12.4 to include cgi module (Python 3.13+ removed it)
-requirements = python3==3.12.4,hostpython3==3.12.4,kivy==2.3.1,pyjnius,android
+# Use Python 3.11.12 - matches GitHub Actions system Python (3.11.15)
+# p4a requires hostpython3 == system Python version, otherwise version mismatch error
+requirements = python3==3.11.12,hostpython3==3.11.12,kivy==2.3.1,pyjnius,android
 
 # (str) Presplash of the application
 # presplash.filename = %(source.dir)s/presplash.png
@@ -84,6 +85,10 @@ android.ndk_api = 21
 
 # (str) python-for-android branch to use, defaults to master
 #p4a.branch = master
+
+# (str) Path to a custom hook script for p4a (runs before build)
+# Used to inject cgi shim module into the build environment
+p4a.hook = p4a_hook.py
 
 # (str) OUYA Console category. Should be one of GAME or APP
 # If you leave this empty, your application will be placed in the default (GAME) category
