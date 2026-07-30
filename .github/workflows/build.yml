@@ -16,7 +16,31 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
+        python-version: '3.12'
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
         python-version: '3.11'
+
+    - name: Install Android NDK 25c  ← 添加这整个步骤
+      run: |
+        export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+        rm -rf cmdline-tools latest
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin"
+        yes | sdkmanager --licenses
+        # Install NDK 25c instead of default 28c
+        sdkmanager "ndk;25.2.9519653"
+        echo "ANDROIDNDK=$HOME/.buildozer/android/platform/android-ndk-r25c" >> $GITHUB_ENV
+
+    - name: Set up Java 17
+
 
     - name: Set up Java 17
       uses: actions/setup-java@v4
